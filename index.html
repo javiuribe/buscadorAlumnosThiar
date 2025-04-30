@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buscador de Alumnos - IES Thiar</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        #qrCode canvas {
+            margin-top: 10px;
+        }
+
+        header {
+            position: relative;
+            padding: 1rem;
+            text-align: center;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .btn-group-toggle .btn.active {
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <!-- HEADER PERSONALIZADO -->
+    <header>
+        <div style="display: inline-flex; align-items: center;">
+            <img src="img/logo-thiar.jpg" alt="Logo del centro" style="height: 60px; margin-right: 1rem;">
+            <h1>Buscador de alumnos - IES Thiar</h1>
+        </div>
+        <div style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);">
+            <input type="file" id="fileInput" accept=".csv" style="display: none;" />
+            <button id="btnReemplazarBD" class="btn btn-outline-danger btn-sm">Cargar base de datos</button>
+        </div>
+    </header>
+
+    <div class="container py-4">
+        <!-- Buscador -->
+        <div class="mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="Busca por nombre o apellido" />
+            <ul id="resultados" class="list-group mt-2"></ul>
+        </div>
+
+        <!-- Ficha alumno -->
+        <div id="alumnoInfo" class="card d-none">
+            <div class="card-body">
+                <h5 class="card-title" id="alumnoNombre"></h5>
+                <p class="card-text" id="alumnoDetalles"></p>
+
+                <!-- Opciones para el estado (Olvidado / Perdido) -->
+                <div class="btn-group mb-3" role="group">
+                    <button id="olvidado" class="btn btn-secondary">Olvidado</button>
+                    <button id="perdido" class="btn btn-secondary">Perdido</button>
+                </div>
+
+                <div id="qrCode"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificación -->
+    <div id="notification"
+        class="toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3" role="alert"
+        aria-live="assertive" aria-atomic="true" style="display: none;">
+        <div class="d-flex">
+            <div class="toast-body">
+                Base de datos cargada correctamente.
+            </div>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="js/papaparse.min.js"></script>
+    <script src="js/qrcode.js"></script> <!-- Usamos la versión local -->
+    <script src="js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let alumnos = [];
+        let estadoSeleccionado = ''; // Variable para almacenar si el carnet es "Olvidado" o "Perdido"
+
+        document.getElementById('btnReemplazarBD').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                Papa.parse(file, {
+                    header: true,
+                    delimiter: ";",
+                    skipEmptyLines: true,
+                    complete: function (results) {
+                        alumnos = results.data;
+                        mostrarNotificacion('Base de datos cargada correctamente.');
+                    }
+                });
+            }
+        });
+
+        const resultadosEl = document.getElementById('resultados');
+
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const query = this.value.toLowerCase();
+            resultadosEl.innerHTML = '';
+            if (query.length === 0) return;
+
+            const resultados = alumnos.filter(alumno =>
+                alumno.nombreCompleto && alumno.nombreCompleto.toLowerCase().includes(query)
+            );
+
+            resultados.forEach(alumno => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item list-group-item-action';
+                li.textContent = `${alumno.nombreCompleto} - ${alumno.curso}`;
+                li.addEventListener('click', () => {
+                    document.getElementById('searchInput').value = alumno.nombreCompleto;
+                    resultadosEl.innerHTML = ''; // Vaciar los resultados de búsqueda
+                    mostrarAlumno(alumno);
+                });
+                resultadosEl.appendChild(li);
+            });
+        });
+
+        function mostrarAlumno(alumno) {
+            const infoCard = document.getElementById('alumnoInfo');
+            const nombreEl = document.getElementById('alumnoNombre');
+            const detallesEl = document.getElementById('alumnoDetalles');
+            const qrEl = document.getElementById('qrCode');
+
+            infoCard.classList.remove('d-none');
+            nombreEl.textContent = alumno.nombreCompleto;
+            detallesEl.innerHTML = `<strong>NIA:</strong> ${alumno.NIA}<br><strong>Curso:</strong> ${alumno.curso}`;
+            qrEl.innerHTML = ''; // Limpiar el código QR anterior
+
+            // Añadir los eventos de los botones "Olvidado" y "Perdido"
+            document.getElementById('olvidado').addEventListener('click', function () {
+                estadoSeleccionado = 'Olvidado';
+                actualizarBotonesEstado('olvidado');
+                generarQR(alumno);
+            });
+
+            document.getElementById('perdido').addEventListener('click', function () {
+                estadoSeleccionado = 'Perdido';
+                actualizarBotonesEstado('perdido');
+                generarQR(alumno);
+            });
+        }
+
+        // Función para generar el código QR con el estado seleccionado
+        function generarQR(alumno) {
+            if (!estadoSeleccionado) {
+                alert('Por favor, selecciona si el carnet está Olvidado o Perdido.');
+                return;
+            }
+
+            const qrData = `Aseos1:${alumno.NIA};${alumno.nombreCompleto};${alumno.curso};${estadoSeleccionado}`;
+
+            // Limpiar el contenedor del QR antes de generar uno nuevo
+            document.getElementById('qrCode').innerHTML = '';
+
+            // Generamos el QR usando la librería local
+            new QRCode(document.getElementById('qrCode'), {
+                text: qrData, // Formato personalizado con estado
+                width: 150,
+                height: 150
+            });
+        }
+
+        function actualizarBotonesEstado(activoId) {
+            const botones = ['olvidado', 'perdido'];
+            botones.forEach(id => {
+                const btn = document.getElementById(id);
+                if (id === activoId) {
+                    btn.classList.add('active', 'btn-primary');
+                    btn.classList.remove('btn-secondary');
+                } else {
+                    btn.classList.remove('active', 'btn-primary');
+                    btn.classList.add('btn-secondary');
+                }
+            });
+        }
+
+
+        // Mostrar notificación
+        function mostrarNotificacion(mensaje) {
+            const notification = document.getElementById('notification');
+            const toast = new bootstrap.Toast(notification);
+            notification.querySelector('.toast-body').textContent = mensaje;
+            notification.style.display = 'block'; // Mostrar la notificación
+            toast.show();
+
+            // Ocultar la notificación después de 3 segundos
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+
+</body>
+
+</html>
