@@ -23,10 +23,6 @@
             margin: 0;
             font-size: 1.5rem;
         }
-
-        .btn-group-toggle .btn.active {
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-        }
     </style>
 </head>
 
@@ -58,9 +54,13 @@
                 <p class="card-text" id="alumnoDetalles"></p>
 
                 <!-- Opciones para el estado (Olvidado / Perdido) -->
-                <div class="btn-group mb-3" role="group">
-                    <button id="olvidado" class="btn btn-secondary">Olvidado</button>
-                    <button id="perdido" class="btn btn-secondary">Perdido</button>
+                <div class="btn-group btn-group-toggle mb-3" data-bs-toggle="buttons">
+                    <input type="radio" class="btn-check" name="estado" id="olvidado" autocomplete="off"
+                        value="Olvidado">
+                    <label class="btn btn-outline-primary" for="olvidado">Olvidado</label>
+
+                    <input type="radio" class="btn-check" name="estado" id="perdido" autocomplete="off" value="Perdido">
+                    <label class="btn btn-outline-primary" for="perdido">Perdido</label>
                 </div>
 
                 <div id="qrCode"></div>
@@ -88,6 +88,10 @@
         let alumnos = [];
         let estadoSeleccionado = ''; // Variable para almacenar si el carnet es "Olvidado" o "Perdido"
 
+        // Resetear selección de botones
+        document.querySelectorAll('input[name="estado"]').forEach(input => {
+            input.checked = false;
+        });
         document.getElementById('btnReemplazarBD').addEventListener('click', () => {
             document.getElementById('fileInput').click();
         });
@@ -142,19 +146,25 @@
             detallesEl.innerHTML = `<strong>NIA:</strong> ${alumno.NIA}<br><strong>Curso:</strong> ${alumno.curso}`;
             qrEl.innerHTML = ''; // Limpiar el código QR anterior
 
-            // Añadir los eventos de los botones "Olvidado" y "Perdido"
-            document.getElementById('olvidado').addEventListener('click', function () {
-                estadoSeleccionado = 'Olvidado';
-                actualizarBotonesEstado('olvidado');
-                generarQR(alumno);
-            });
+            ultimoAlumno = alumno; // Guarda el alumno activo
+            estadoSeleccionado = ''; // Reinicia selección previa
 
-            document.getElementById('perdido').addEventListener('click', function () {
-                estadoSeleccionado = 'Perdido';
-                actualizarBotonesEstado('perdido');
-                generarQR(alumno);
+            // Reinicia botones
+            document.querySelectorAll('input[name="estado"]').forEach(input => {
+                input.checked = false;
             });
         }
+        let ultimoAlumno = null;
+
+        document.querySelectorAll('input[name="estado"]').forEach(input => {
+            input.addEventListener('change', function () {
+                estadoSeleccionado = this.value;
+                if (ultimoAlumno) {
+                    generarQR(ultimoAlumno);
+                }
+            });
+        });
+
 
         // Función para generar el código QR con el estado seleccionado
         function generarQR(alumno) {
@@ -176,19 +186,6 @@
             });
         }
 
-        function actualizarBotonesEstado(activoId) {
-            const botones = ['olvidado', 'perdido'];
-            botones.forEach(id => {
-                const btn = document.getElementById(id);
-                if (id === activoId) {
-                    btn.classList.add('active', 'btn-primary');
-                    btn.classList.remove('btn-secondary');
-                } else {
-                    btn.classList.remove('active', 'btn-primary');
-                    btn.classList.add('btn-secondary');
-                }
-            });
-        }
 
 
         // Mostrar notificación
