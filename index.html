@@ -36,7 +36,13 @@
         </div>
         <div style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);">
             <input type="file" id="fileInput" accept=".csv" style="display: none;" />
-            <button id="btnReemplazarBD" class="btn btn-outline-danger btn-sm">Cargar base de datos</button>
+            <button id="btnReemplazarBD" class="btn btn-outline-danger btn-sm">Reemplazar alumnos</button>
+
+            <input type="file" id="fileAddInput" accept=".csv" style="display: none;" />
+            <button id="btnAnyadirBD" class="btn btn-outline-success btn-sm me-2">Añadir alumnos</button>
+
+            <input type="file" id="fileFotosInput" accept="image/*" style="display: none;" webkitdirectory directory />
+            <button id="btnCargarFotos" class="btn btn-outline-secondary btn-sm me-2">Cargar fotos alumnos</button>
         </div>
     </header>
 
@@ -50,22 +56,36 @@
         <!-- Ficha alumno -->
         <div id="alumnoInfo" class="card d-none">
             <div class="card-body">
-                <h5 class="card-title" id="alumnoNombre"></h5>
-                <p class="card-text" id="alumnoDetalles"></p>
+                <div class="row">
+                    <!-- Columna izquierda -->
+                    <div class="col-md-8">
+                        <h5 class="card-title" id="alumnoNombre"></h5>
+                        <p class="card-text" id="alumnoDetalles"></p>
 
-                <!-- Opciones para el estado (Olvidado / Perdido) -->
-                <div class="btn-group btn-group-toggle mb-3" data-bs-toggle="buttons">
-                    <input type="radio" class="btn-check" name="estado" id="olvidado" autocomplete="off"
-                        value="Olvidado">
-                    <label class="btn btn-outline-primary" for="olvidado">Olvidado</label>
+                        <!-- Opciones para el estado (Olvidado / Perdido) -->
+                        <div class="btn-group btn-group-toggle mb-3" data-bs-toggle="buttons">
+                            <input type="radio" class="btn-check" name="estado" id="olvidado" autocomplete="off"
+                                value="Olvidado">
+                            <label class="btn btn-outline-primary" for="olvidado">Olvidado</label>
 
-                    <input type="radio" class="btn-check" name="estado" id="perdido" autocomplete="off" value="Perdido">
-                    <label class="btn btn-outline-primary" for="perdido">Perdido</label>
+                            <input type="radio" class="btn-check" name="estado" id="perdido" autocomplete="off"
+                                value="Perdido">
+                            <label class="btn btn-outline-primary" for="perdido">Perdido</label>
+                        </div>
+
+                        <!-- Código QR -->
+                        <div id="qrCode"></div>
+                    </div>
+
+                    <!-- Columna derecha (foto del alumno) -->
+                    <div class="col-md-4 text-center d-flex align-items-center justify-content-center">
+                        <img id="fotoAlumno" src="" alt="Foto del alumno" class="img-fluid d-none"
+                            style="max-height: 200px;" />
+                    </div>
                 </div>
-
-                <div id="qrCode"></div>
             </div>
         </div>
+
     </div>
 
     <!-- Notificación -->
@@ -81,19 +101,28 @@
 
     <!-- JS -->
     <script src="js/papaparse.min.js"></script>
-    <script src="js/qrcode.js"></script> <!-- Usamos la versión local -->
+    <script src="js/qrcode.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
 
     <script>
         let alumnos = [];
-        let estadoSeleccionado = ''; // Variable para almacenar si el carnet es "Olvidado" o "Perdido"
+        let fotosAlumnos = {};
+        let estadoSeleccionado = '';
+        let ultimoAlumno = null;
 
-        // Resetear selección de botones
-        document.querySelectorAll('input[name="estado"]').forEach(input => {
-            input.checked = false;
-        });
+        document.querySelectorAll('input[name="estado"]').forEach(input => input.checked = false);
+
+        // Botones de carga de archivos
         document.getElementById('btnReemplazarBD').addEventListener('click', () => {
             document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileAnyadirBD')?.addEventListener('click', () => {
+            document.getElementById('fileAddInput').click();
+        });
+
+        document.getElementById('btnAnyadirBD').addEventListener('click', () => {
+            document.getElementById('fileAddInput').click();
         });
 
         document.getElementById('fileInput').addEventListener('change', function (e) {
@@ -101,7 +130,7 @@
             if (file) {
                 Papa.parse(file, {
                     header: true,
-                    delimiter: ";",
+                    delimiter: ",",
                     skipEmptyLines: true,
                     complete: function (results) {
                         alumnos = results.data;
@@ -111,51 +140,94 @@
             }
         });
 
-        const resultadosEl = document.getElementById('resultados');
+        document.getElementById('fileAddInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                Papa.parse(file, {
+                    header: true,
+                    delimiter: ",",
+                    skipEmptyLines: true,
+                    complete: function (results) {
+                        alumnos.push(...results.data);
+                        mostrarNotificacion('Alumnos añadidos correctamente.');
+                    }
+                });
+            }
+        });
 
+        document.getElementById('btnCargarFotos').addEventListener('click', () => {
+            document.getElementById('fileFotosInput').click();
+        });
+
+        document.getElementById('fileFotosInput').addEventListener('change', function (e) {
+            const files = e.target.files;
+            fotosAlumnos = {};
+            for (const file of files) {
+                fotosAlumnos[file.name] = file;
+            }
+            mostrarNotificacion('Fotos de alumnos cargadas correctamente.');
+        });
+
+        // Búsqueda
+        const resultadosEl = document.getElementById('resultados');
         document.getElementById('searchInput').addEventListener('input', function () {
             const query = this.value.toLowerCase();
             resultadosEl.innerHTML = '';
-            if (query.length === 0) return;
+            if (!query) return;
 
             const resultados = alumnos.filter(alumno =>
-                alumno.nombreCompleto && alumno.nombreCompleto.toLowerCase().includes(query)
+                (`${alumno.Nombre} ${alumno.Apellido1} ${alumno.Apellido2}`.toLowerCase().includes(query))
             );
 
             resultados.forEach(alumno => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item list-group-item-action';
-                li.textContent = `${alumno.nombreCompleto} - ${alumno.curso}`;
+                li.textContent = `${alumno.Nombre} ${alumno.Apellido1} ${alumno.Apellido2} - ${alumno.Curso}`;
                 li.addEventListener('click', () => {
-                    document.getElementById('searchInput').value = alumno.nombreCompleto;
-                    resultadosEl.innerHTML = ''; // Vaciar los resultados de búsqueda
+                    document.getElementById('searchInput').value = `${alumno.Nombre} ${alumno.Apellido1} ${alumno.Apellido2}`;
+                    resultadosEl.innerHTML = '';
                     mostrarAlumno(alumno);
                 });
                 resultadosEl.appendChild(li);
             });
         });
 
+        // Mostrar info alumno
         function mostrarAlumno(alumno) {
             const infoCard = document.getElementById('alumnoInfo');
             const nombreEl = document.getElementById('alumnoNombre');
             const detallesEl = document.getElementById('alumnoDetalles');
             const qrEl = document.getElementById('qrCode');
+            const fotoEl = document.getElementById('fotoAlumno');
 
             infoCard.classList.remove('d-none');
-            nombreEl.textContent = alumno.nombreCompleto;
-            detallesEl.innerHTML = `<strong>NIA:</strong> ${alumno.NIA}<br><strong>Curso:</strong> ${alumno.curso}`;
-            qrEl.innerHTML = ''; // Limpiar el código QR anterior
+            nombreEl.textContent = alumno.Nombre + ' ' + alumno.Apellido1 + ' ' + alumno.Apellido2;
+            detallesEl.innerHTML = `<strong>NIA:</strong> ${alumno.NIA}<br><strong>Curso:</strong> ${alumno.Curso}<br><strong>Grupo:</strong> ${alumno.Grupo}`;
 
-            ultimoAlumno = alumno; // Guarda el alumno activo
-            estadoSeleccionado = ''; // Reinicia selección previa
+            const nia = alumno.NIA?.toString().trim();
+            let fotoEncontrada = null;
 
-            // Reinicia botones
-            document.querySelectorAll('input[name="estado"]').forEach(input => {
-                input.checked = false;
-            });
+            for (const nombreArchivo in fotosAlumnos) {
+                if (nombreArchivo.includes(nia)) {
+                    fotoEncontrada = fotosAlumnos[nombreArchivo];
+                    break;
+                }
+            }
+
+            if (fotoEncontrada) {
+                const url = URL.createObjectURL(fotoEncontrada);
+                fotoEl.src = url;
+                fotoEl.classList.remove('d-none');
+            } else {
+                fotoEl.src = '';
+                fotoEl.classList.add('d-none');
+            }
+
+            document.querySelectorAll('input[name="estado"]').forEach(input => input.checked = false);
+            ultimoAlumno = alumno;
         }
-        let ultimoAlumno = null;
 
+        // QR
         document.querySelectorAll('input[name="estado"]').forEach(input => {
             input.addEventListener('change', function () {
                 estadoSeleccionado = this.value;
@@ -165,44 +237,32 @@
             });
         });
 
-
-        // Función para generar el código QR con el estado seleccionado
         function generarQR(alumno) {
             if (!estadoSeleccionado) {
                 alert('Por favor, selecciona si el carnet está Olvidado o Perdido.');
                 return;
             }
 
-            const qrData = `Aseos1:${alumno.NIA};${alumno.nombreCompleto};${alumno.curso};${estadoSeleccionado}`;
-
-            // Limpiar el contenedor del QR antes de generar uno nuevo
+            const qrData = `Aseos1:${alumno.NIA};${alumno.Nombre} ${alumno.Apellido1} ${alumno.Apellido2};${alumno.Curso};${estadoSeleccionado}`;
             document.getElementById('qrCode').innerHTML = '';
-
-            // Generamos el QR usando la librería local
             new QRCode(document.getElementById('qrCode'), {
-                text: qrData, // Formato personalizado con estado
+                text: qrData,
                 width: 150,
                 height: 150
             });
         }
 
-
-
-        // Mostrar notificación
         function mostrarNotificacion(mensaje) {
             const notification = document.getElementById('notification');
             const toast = new bootstrap.Toast(notification);
             notification.querySelector('.toast-body').textContent = mensaje;
-            notification.style.display = 'block'; // Mostrar la notificación
+            notification.style.display = 'block';
             toast.show();
-
-            // Ocultar la notificación después de 3 segundos
             setTimeout(() => {
                 notification.style.display = 'none';
             }, 3000);
         }
     </script>
-
 </body>
 
 </html>
