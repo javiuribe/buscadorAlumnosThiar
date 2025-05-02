@@ -86,10 +86,10 @@
     </div>
 
     <div id="notification"
-        class="toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3" role="alert"
+        class="toast align-items-center text-white bg-success border-0 position-fixed top-0 start-0 m-3" role="alert"
         aria-live="assertive" aria-atomic="true" style="display: none;">
         <div class="d-flex">
-            <div class="toast-body">Base de datos cargada correctamente.</div>
+            <div class="toast-body"></div>
         </div>
     </div>
 
@@ -118,7 +118,7 @@
                     skipEmptyLines: true,
                     complete: function (results) {
                         alumnos = results.data;
-                        mostrarNotificacion('Base de datos cargada correctamente.');
+                        mostrarNotificacion('Alumnos cargados correctamente.');
                     }
                 });
             }
@@ -149,7 +149,7 @@
 
         document.getElementById('fileFotosInput').addEventListener('change', function (e) {
             fotos = Array.from(e.target.files);
-            mostrarNotificacion(`${fotos.length} fotos cargadas.`);
+            mostrarNotificacion(`${fotos.length} fotos de alumnos cargadas.`);
         });
 
         document.getElementById('searchInput').addEventListener('input', function () {
@@ -234,7 +234,7 @@
             toast.show();
             setTimeout(() => {
                 notification.style.display = 'none';
-            }, 3000);
+            }, 2000);
         }
     </script>
 </body>
