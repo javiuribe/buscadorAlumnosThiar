@@ -161,7 +161,7 @@
             const detallesEl = document.getElementById('alumnoDetalles');
             const qrEl = document.getElementById('qrCode');
             const fotoEl = document.getElementById('fotoAlumno');
-
+            const nombreSinTildes = quitarTildes(alumno.nombre + ' ' + alumno.apellidos).toLowerCase().replace(/\s+/g, ' ').trim();
             infoCard.classList.remove('d-none');
             nombreEl.textContent = `${alumno.nombre} ${alumno.apellidos}`;
             detallesEl.innerHTML = `<strong>NIA:</strong> ${alumno.nia}<br><strong>Curso:</strong> ${alumno.curso}`;
@@ -169,7 +169,7 @@
             document.querySelectorAll('input[name="estado"]').forEach(input => input.checked = false);
 
             // Buscar foto que contenga el NIA
-            const fotoUrl = `fotosAlumnos/${alumno.nia}.jpg`;
+            const fotoUrl = `fotosAlumnos/${nombreSinTildes} ${alumno.nia}.jpg`;
             fotoEl.src = fotoUrl;
             fotoEl.classList.remove('d-none');
 
