@@ -39,20 +39,22 @@
 
 <body class="bg-light">
 
-    <header>
+    <header
+        style="position: relative; padding: 2rem 1rem 1rem; text-align: center; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+        <!-- Logo y Título -->
         <div style="display: inline-flex; align-items: center;">
             <img src="img/logo-thiar.jpg" alt="Logo del centro" style="height: 60px; margin-right: 1rem;">
-            <h1>Buscador de alumnos - IES Thiar</h1>
+            <h1 style="margin: 0; font-size: 1.5rem;">Buscador de alumnos - IES Thiar</h1>
         </div>
-        <div style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);">
-            <input type="file" id="fileInput" accept=".csv" style="display: none;" />
-            <button id="btnReemplazarBD" class="btn btn-outline-danger btn-sm">Reemplazar alumnos</button>
+
+        <!-- Botones en su lugar actual -->
+        <div style="position: absolute; top: 1rem; right: 1rem;">
             <input type="file" id="fileAddInput" accept=".csv" style="display: none;" />
-            <button id="btnAnyadirBD" class="btn btn-outline-success btn-sm">Añadir alumnos</button>
-            <input type="file" id="fileFotosInput" accept="image/*" style="display: none;" webkitdirectory directory />
-            <button id="btnCargarFotos" class="btn btn-outline-secondary btn-sm">Cargar fotos alumnos</button>
+            <button id="btnAnyadirBD" class="btn btn-outline-success btn-sm">+Alumnos</button>            
         </div>
     </header>
+
+
 
     <div class="container py-4">
         <div class="mb-3">
@@ -98,6 +100,7 @@
     <script src="js/bootstrap.bundle.min.js"></script>
 
     <script>
+        let ficheroAlumnos = './IESThiar2425-utf8.csv';
         let alumnos = [];
         let fotos = [];
         let estadoSeleccionado = '';
@@ -105,28 +108,12 @@
 
         document.querySelectorAll('input[name="estado"]').forEach(input => input.checked = false);
 
-        document.getElementById('btnReemplazarBD').addEventListener('click', () => {
-            document.getElementById('fileInput').click();
-        });
 
-        document.getElementById('fileInput').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (file) {
-                Papa.parse(file, {
-                    header: true,
-                    delimiter: ";",
-                    skipEmptyLines: true,
-                    complete: function (results) {
-                        alumnos = results.data;
-                        mostrarNotificacion('Alumnos cargados correctamente.');
-                    }
-                });
-            }
-        });
 
         document.getElementById('btnAnyadirBD').addEventListener('click', () => {
             document.getElementById('fileAddInput').click();
         });
+     
 
         document.getElementById('fileAddInput').addEventListener('change', function (e) {
             const file = e.target.files[0];
@@ -143,14 +130,7 @@
             }
         });
 
-        document.getElementById('btnCargarFotos').addEventListener('click', () => {
-            document.getElementById('fileFotosInput').click();
-        });
 
-        document.getElementById('fileFotosInput').addEventListener('change', function (e) {
-            fotos = Array.from(e.target.files);
-            mostrarNotificacion(`${fotos.length} fotos de alumnos cargadas.`);
-        });
 
         document.getElementById('searchInput').addEventListener('input', function () {
             const query = this.value.toLowerCase();
@@ -189,14 +169,9 @@
             document.querySelectorAll('input[name="estado"]').forEach(input => input.checked = false);
 
             // Buscar foto que contenga el NIA
-            const foto = fotos.find(f => f.name.includes(alumno.nia));
-            if (foto) {
-                const url = URL.createObjectURL(foto);
-                fotoEl.src = url;
-                fotoEl.classList.remove('d-none');
-            } else {
-                fotoEl.classList.add('d-none');
-            }
+            const fotoUrl = `fotosAlumnos/${alumno.nia}.jpg`;
+            fotoEl.src = fotoUrl;
+            fotoEl.classList.remove('d-none');
 
             ultimoAlumno = alumno;
             document.getElementById('qrCode').innerHTML = '';  // Limpiar el QR cuando se cambia de alumno
@@ -217,7 +192,7 @@
                 return;
             }
 
-            const qrData = `Aseos1:${alumno.nia};${alumno.nombre} ${alumno.apellidos};${alumno.curso};${estadoSeleccionado}`;
+            const qrData = `${alumno.nia};${alumno.nombre};${alumno.apellidos};${alumno.curso};${estadoSeleccionado}`;
             document.getElementById('qrCode').innerHTML = '';
             new QRCode(document.getElementById('qrCode'), {
                 text: qrData,
@@ -236,6 +211,27 @@
                 notification.style.display = 'none';
             }, 2000);
         }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetch(ficheroAlumnos)
+                .then(response => response.text())
+                .then(csvText => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        delimiter: ";",
+                        skipEmptyLines: true,
+                        complete: function (results) {
+                            alumnos = results.data;
+                            mostrarNotificacion('Base de datos cargada automáticamente.');
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al cargar el archivo CSV:', error);
+                    mostrarNotificacion('Error al cargar la base de datos.');
+                });
+        });
+
     </script>
 </body>
 
