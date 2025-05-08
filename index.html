@@ -39,20 +39,25 @@
 
 <body class="bg-light">
 
-    <header style="position: relative; padding: 2rem 1rem 1rem; text-align: center; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+    <header
+        style="position: relative; padding: 2rem 1rem 1rem; text-align: center; background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
         <div style="display: inline-flex; align-items: center;">
             <img src="img/logo-thiar.jpg" alt="Logo del centro" style="height: 60px; margin-right: 1rem;">
             <h1 style="margin: 0; font-size: 1.5rem;">Buscador de alumnos - IES Thiar</h1>
         </div>
         <div style="position: absolute; top: 1rem; right: 1rem;">
             <input type="file" id="fileAddInput" accept=".csv" style="display: none;" />
-            <button id="btnAnyadirBD" class="btn btn-outline-success btn-sm">+Alumnos</button>            
+            <button id="btnAnyadirBD" class="btn btn-outline-success btn-sm">+Alumnos</button>
         </div>
     </header>
 
     <div class="container py-4">
         <div class="mb-3">
-            <input type="text" id="searchInput" class="form-control" placeholder="Busca por nombre o apellidos" />
+            <div class="input-group mb-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="Busca por nombre o apellidos" />
+                <button id="btnLimpiar" class="btn btn-outline-secondary" type="button">Limpiar
+                    búsqueda</button>
+            </div>
             <ul id="resultados" class="list-group mt-2"></ul>
         </div>
 
@@ -63,10 +68,12 @@
                     <p class="card-text" id="alumnoDetalles"></p>
 
                     <div class="btn-group btn-group-toggle mb-3" data-bs-toggle="buttons">
-                        <input type="radio" class="btn-check" name="estado" id="olvidado" autocomplete="off" value="Olvidado">
+                        <input type="radio" class="btn-check" name="estado" id="olvidado" autocomplete="off"
+                            value="Olvidado">
                         <label class="btn btn-outline-primary" for="olvidado">Olvidado</label>
 
-                        <input type="radio" class="btn-check" name="estado" id="perdido" autocomplete="off" value="Perdido">
+                        <input type="radio" class="btn-check" name="estado" id="perdido" autocomplete="off"
+                            value="Perdido">
                         <label class="btn btn-outline-primary" for="perdido">Perdido</label>
                     </div>
 
@@ -79,7 +86,9 @@
         </div>
     </div>
 
-    <div id="notification" class="toast align-items-center text-white bg-success border-0 position-fixed top-0 start-0 m-3" role="alert" aria-live="assertive" aria-atomic="true" style="display: none;">
+    <div id="notification"
+        class="toast align-items-center text-white bg-success border-0 position-fixed top-0 start-0 m-3" role="alert"
+        aria-live="assertive" aria-atomic="true" style="display: none;">
         <div class="d-flex">
             <div class="toast-body"></div>
         </div>
@@ -197,6 +206,14 @@
             }, 2000);
         }
 
+        document.getElementById('btnLimpiar').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('resultados').innerHTML = '';
+            document.getElementById('alumnoInfo').classList.add('d-none');
+            document.getElementById('searchInput').focus();  // 👈 Esta línea pone el foco
+
+        });
+
         function quitarTildes(str) {
             return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         }
@@ -227,8 +244,10 @@
                 });
         }
 
+
+
         window.addEventListener('DOMContentLoaded', () => {
-            asegurarAlumnosCargados(() => {});
+            asegurarAlumnosCargados(() => { });
         });
     </script>
 </body>
