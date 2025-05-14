@@ -117,12 +117,29 @@
                     delimiter: ";",
                     skipEmptyLines: true,
                     complete: function (results) {
-                        alumnos.push(...results.data);
-                        mostrarNotificacion('Alumnos añadidos correctamente.');
+                        const nuevosAlumnos = results.data.filter(nuevo => !alumnoExiste(nuevo.nia));
+                        const duplicados = results.data.length - nuevosAlumnos.length;
+
+                        alumnos.push(...nuevosAlumnos);
+
+                        if (nuevosAlumnos.length > 0) {
+                            mostrarNotificacion(`${nuevosAlumnos.length} alumno(s) añadido(s).`);
+                        } else {
+                            mostrarNotificacion('No se añadieron alumnos nuevos.');
+                        }
+
+                        if (duplicados > 0) {
+                            console.warn(`${duplicados} alumno(s) ya existían y fueron ignorados.`);
+                        }
                     }
+
                 });
             }
         });
+
+        function alumnoExiste(nia) {
+            return alumnos.some(alumno => alumno.nia === nia);
+        }
 
         document.getElementById('searchInput').addEventListener('input', function () {
             asegurarAlumnosCargados(() => {
@@ -230,10 +247,22 @@
                         delimiter: ";",
                         skipEmptyLines: true,
                         complete: function (results) {
-                            alumnos = results.data;
+                            const nuevosAlumnos = [];
+                            const conocidos = new Set();
+
+                            results.data.forEach(alumno => {
+                                if (!conocidos.has(alumno.nia)) {
+                                    nuevosAlumnos.push(alumno);
+                                    conocidos.add(alumno.nia);
+                                }
+                            });
+
+                            alumnos = nuevosAlumnos;
+
                             mostrarNotificacion('Base de datos cargada automáticamente.');
                             callback();
                         }
+
                     });
                 })
                 .catch(error => {
